@@ -1,12 +1,13 @@
 #include <windows.h>
 #include <stdio.h>
-//#include <winternl.h>
 #include "WinStructs.h"
+
 
 // Struct containing syscall for Syswhispers2,3 implementation
 typedef struct _SwSyscall{
     FARPROC Address;
     char* Name;
+    DWORD SSN;
 } SwSyscall, *PSwSyscall;
 
 
@@ -96,6 +97,31 @@ void GetSyscallsArr(IN HMODULE hModule, OUT SwSyscall** ppSyscallsArr, OUT size_
 }
 
 
+int comparator(const void* x_void, const void* y_void)
+{
+    SwSyscall* x_psyscall = (SwSyscall*)x_void;
+    SwSyscall* y_psyscall = (SwSyscall*)y_void;
+
+    if (x_psyscall->Address < y_psyscall->Address) return -1;
+    if (x_psyscall->Address > y_psyscall->Address) return 1;
+    return 0;
+}
+
+
+void SortSyscallsArr(OUT SwSyscall** ppSyscallsArr, IN size_t arrSize)
+{
+    qsort(*ppSyscallsArr, arrSize, sizeof(SwSyscall), comparator);
+}
+
+
+void SetSSNs(IN SwSyscall* syscallsArr, IN size_t arrSize)
+{
+    for (size_t i = 0; i < arrSize; i++) {
+        syscallsArr[i].SSN = (DWORD)i;
+    }
+}
+
+
 int main()
 {
     HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
@@ -107,21 +133,17 @@ int main()
     SwSyscall* syscallsArr;
     size_t arrSize;
     GetSyscallsArr(hNtdll, &syscallsArr, &arrSize);
+
+    // Sort Syscalls arr for Addresses, then index of the array will be equivalent to SSNs
+    SortSyscallsArr(&syscallsArr, arrSize);
     
-    // Test array for validation
-    FARPROC* testArr = (FARPROC*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, arrSize*sizeof(FARPROC));
-    int idx = 0;
-    for (int i=0; i<arrSize; i++) {
-        testArr[idx] = GetProcAddress(GetModuleHandleA("ntdll.dll"), syscallsArr[i].Name);
-        idx++;
-    }
+    // Set values to struct
+    SetSSNs(syscallsArr, arrSize);
 
     for (size_t i=0; i<arrSize; i++) {
-        printf("[i] %s: 0x%p vs 0x%p\n", syscallsArr[i].Name, syscallsArr[i].Address, testArr[i]);
+        printf("[i] %s: 0x%p -- SSN %d\n", syscallsArr[i].Name, syscallsArr[i].Address, syscallsArr[i].SSN);
     }
     HeapFree(GetProcessHeap(), NULL, syscallsArr);
-    HeapFree(GetProcessHeap(), NULL, testArr);
-
 
     return 0;
 }
