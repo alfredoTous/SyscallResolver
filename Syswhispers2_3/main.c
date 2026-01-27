@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "WinStructs.h"
-
+#include "syscalls.h"
 
 // Struct containing syscall for Syswhispers2,3 implementation
 typedef struct _SwSyscall{
@@ -75,7 +75,7 @@ void GetSyscallsArr(IN HMODULE hModule, OUT SwSyscall** ppSyscallsArr, OUT size_
     
     // Allocate memory for array
     SwSyscall* ZwFunctions = (SwSyscall*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, ZwCounter*sizeof(SwSyscall));
-    
+
     // Second iteration 
     size_t idx = 0;
     for (size_t i=0; i<pImgExpDir->NumberOfFunctions; i++) {
@@ -108,42 +108,62 @@ int comparator(const void* x_void, const void* y_void)
 }
 
 
-void SortSyscallsArr(OUT SwSyscall** ppSyscallsArr, IN size_t arrSize)
+void SortSyscallsArr(OUT SwSyscall** ppSyscallsArr, IN size_t g_arrSize)
 {
-    qsort(*ppSyscallsArr, arrSize, sizeof(SwSyscall), comparator);
+    qsort(*ppSyscallsArr, g_arrSize, sizeof(SwSyscall), comparator);
 }
 
 
-void SetSSNs(IN SwSyscall* syscallsArr, IN size_t arrSize)
+void SetSSNs(IN SwSyscall* g_SyscallsArr, IN size_t g_arrSize)
 {
-    for (size_t i = 0; i < arrSize; i++) {
-        syscallsArr[i].SSN = (DWORD)i;
+    for (size_t i = 0; i < g_arrSize; i++) {
+        g_SyscallsArr[i].SSN = (DWORD)i;
     }
 }
 
 
-int main()
+static SwSyscall* g_SyscallsArr;
+static size_t g_arrSize;
+
+DWORD GetSSNByName(char* name)
 {
+    if (!g_SyscallsArr)
+        return (DWORD)-1;
+
+    for (size_t i = 0; i < g_arrSize; i++) {
+        if (_stricmp(g_SyscallsArr[i].Name, name) == 0) {
+            return g_SyscallsArr[i].SSN;
+        }
+    }
+
+    return (DWORD)-1;
+}
+
+BOOL InitSyscalls()
+{
+    if (g_SyscallsArr) return TRUE;
+
     HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
     if (hNtdll == NULL) {
         printf("[-] CustomGetModuleHandle failed\n");
-        exit(1);
+        return FALSE;
     }
 
-    SwSyscall* syscallsArr;
-    size_t arrSize;
-    GetSyscallsArr(hNtdll, &syscallsArr, &arrSize);
+    GetSyscallsArr(hNtdll, &g_SyscallsArr, &g_arrSize);
 
     // Sort Syscalls arr for Addresses, then index of the array will be equivalent to SSNs
-    SortSyscallsArr(&syscallsArr, arrSize);
-    
+    SortSyscallsArr(&g_SyscallsArr, g_arrSize);
+
     // Set values to struct
-    SetSSNs(syscallsArr, arrSize);
+    SetSSNs(g_SyscallsArr, g_arrSize);
 
-    for (size_t i=0; i<arrSize; i++) {
-        printf("[i] %s: 0x%p -- SSN %d\n", syscallsArr[i].Name, syscallsArr[i].Address, syscallsArr[i].SSN);
+    for (size_t i=0; i<g_arrSize; i++) {
+        printf("[i] %s: 0x%p -- SSN %d\n", g_SyscallsArr[i].Name, g_SyscallsArr[i].Address, g_SyscallsArr[i].SSN);
     }
-    HeapFree(GetProcessHeap(), NULL, syscallsArr);
+    return TRUE;
+}
 
-    return 0;
+void CleanSyscalls()
+{
+    HeapFree(GetProcessHeap(), NULL, g_SyscallsArr);
 }
