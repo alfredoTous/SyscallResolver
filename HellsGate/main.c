@@ -63,18 +63,23 @@ DWORD GetSSNByName(IN HMODULE hModule, IN char* syscallName)
             size_t idx = 0;
             BYTE* bytes = (BYTE*)functionAddr;
             while (TRUE) {
-                // If function ain't hooked stub will have the following opcodes
-                if (bytes[idx] == 0x4c && bytes[idx+1] == 0x8b && bytes[idx+2] == 0xd1 &&
+                // If function ain't hooked stub will have the following opcodes 
+                if (bytes[idx] == 0x4c && bytes[idx+1] == 0x8b && bytes[idx+2] == 0xd1 && // opcodes for (mov r10, rcx; mov eax, SSN)
                     bytes[idx+3] == 0xb8) {
                     // The SSN would start at the 5th byte
                     // We can easily get the value through dereference
                     DWORD SSN = *(DWORD*)(bytes+idx+4);
-                    printf("\t[+] SSN ENCONTRADO: %d\n", SSN);
+                    printf("\t[+] SSN: %d\n", SSN);
                     return SSN;
                 }
+
+                // If we got to this point function is probably hooked
+                // We continue walking the bytes until the stub opcodes for the SSN are reached
+                // If we reach opcodes for "syscall" or "ret" SSN was not found
+
+                if (bytes[idx] == 0x0f && bytes[idx+1] == 0x05) return NULL; // opcodes for "syscall"
+                if (bytes[idx] == 0xc3) return NULL; // opcode for "ret"
                 idx++;
-                // Sanity break
-                if (idx == 15) return NULL;
             }
         }
     }
