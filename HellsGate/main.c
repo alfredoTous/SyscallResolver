@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include "WinStructs.h"
-
+#include "syscalls.h"
 
 HMODULE CustomGetModuleHandle(wchar_t* moduleName)
 {
@@ -31,7 +31,7 @@ HMODULE CustomGetModuleHandle(wchar_t* moduleName)
 }
 
 
-DWORD GetSSNByName(IN HMODULE hModule, IN char* syscallName)
+DWORD GetSSnByNameImplementation(IN HMODULE hModule, IN char* syscallName)
 {
     BYTE* pBase = (BYTE*)hModule;
     PIMAGE_DOS_HEADER pImgDosHdr = (PIMAGE_DOS_HEADER)pBase;
@@ -86,11 +86,10 @@ DWORD GetSSNByName(IN HMODULE hModule, IN char* syscallName)
 
 }
 
-int main()
-{
-    HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
-    GetSSNByName(hNtdll, "NtQueryInformationProcess");
-    GetSSNByName(hNtdll, "NtAllocateVirtualMemory");
-
-    return 0;
+// Wrapper for calling the actual function without having to pass HMODULE parameter
+// This is the api to be exported on syscalls.h
+DWORD GetSSNByName(IN char* syscallName) {
+    HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");    
+    DWORD SSN = GetSSnByNameImplementation(hNtdll, syscallName);
+    return SSN;
 }
