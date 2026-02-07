@@ -12,7 +12,7 @@ The project focuses mainly in **Windows internals**, **PE parsing**, and differe
 - [Syswhispers](http://github.com/jthuraisamy/SysWhispers) -- Build based technique
 
 
-## Understaing implementation
+## Understanding implementation
 Each technique is implemented in its own directory, which contains:
 - **README.md** : Detailed explanation of the technique
 - **main.c** : SSN resolver implementation
