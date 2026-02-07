@@ -28,4 +28,4 @@ Note that the implementations were written entirely from scratch. While it follo
 ## Compilation
 ```bash
 ml64 stub.asm
-cl main.c test_exec.c /link stub.asm
+cl main.c test_exec.c /link stub.obj
