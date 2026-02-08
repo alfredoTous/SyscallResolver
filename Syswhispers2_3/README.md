@@ -1,6 +1,6 @@
 ## SysWhispers2 / SysWhispers3 — Address Sorting Technique
 
-### Technique Explanation
+### Technique Explanation -- STEP BY STEP
 
 1. **Get base address of ntdll.dll** : Since  `ntdll.dll` is load into every user-mode process there is no need to call `LoadLibrary` API.  
 The base address (HMODULE) can be retrieved directly using `GetModuleHandle` WinApi.  
@@ -110,3 +110,6 @@ void InitSSNs() {
         &retLen
     );
 ```
+
+### Demo
+<img width="1003" height="530" alt="Image" src="https://github.com/user-attachments/assets/59380885-cedf-4830-9c08-c52482e23f39" />
